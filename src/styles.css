@@ -1,0 +1,4 @@
+:root { --wine: #6d1a2e; --bg: #faf7f5; --fg: #221a1c; --muted: #6f6467; --card: #fff; --line: #e8e0e2; }
+@media (prefers-color-scheme: dark) { :root { --bg: #171214; --fg: #f3ecee; --muted: #a99ca0; --card: #221b1e; --line: #3a2f33; --wine: #c4566f; } }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--fg); }
