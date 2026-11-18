@@ -11,3 +11,24 @@ export function watchForUpdates(reg: { update(): Promise<unknown> }, doc: Docume
   doc.addEventListener("visibilitychange", onChange);
   return () => doc.removeEventListener("visibilitychange", onChange);
 }
+
+/**
+ * A downloaded update reloads the page, which would wipe an unsaved scan, an
+ * edit form or the Spørg chat. Hold it until the user is on a screen with
+ * nothing to lose (Min Vinkælder) and the app is visible, then apply once.
+ */
+export function createUpdateGate(o: { isSafe(): boolean; apply(): void; doc: Document; win: Window }): { markPending(): void } {
+  let pending = false;
+  let applied = false;
+  const tryApply = () => {
+    if (!pending || applied || o.doc.visibilityState !== "visible" || !o.isSafe()) return;
+    applied = true;
+    o.apply();
+  };
+  o.win.addEventListener("hashchange", tryApply);
+  o.doc.addEventListener("visibilitychange", tryApply);
+  return { markPending() { pending = true; tryApply(); } };
+}
+
+/** Min Vinkælder (the list) holds no unsaved input. */
+export const onCellarScreen = (hash: string) => hash === "" || hash === "#" || hash === "#/";
