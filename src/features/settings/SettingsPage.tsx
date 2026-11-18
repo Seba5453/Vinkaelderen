@@ -4,6 +4,7 @@ import { da, formatDate } from "../../i18n/da";
 import { db } from "../../db/db";
 import { setSetting } from "../../db/repo";
 import { BackupError, backupFileName, exportBackup, importBackup } from "../../db/backup";
+import { saveBackupFile } from "../../db/saveBackup";
 import { useApiKey } from "../../ai/useApiKey";
 
 const t = da.settings;
@@ -24,13 +25,11 @@ export default function SettingsPage() {
   }
 
   async function doExport() {
-    const blob = await exportBackup();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = backupFileName(new Date());
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    try {
+      await saveBackupFile(await exportBackup(), backupFileName(new Date()));
+    } catch {
+      setMessage(da.common.saveError);
+    }
   }
 
   async function doRestore() {

@@ -16,19 +16,19 @@ export const da = {
   aiErrors: {
     "ingen-noegle": "Du mangler en API-nøgle. Tilføj den under Indstillinger.",
     "ugyldig-noegle": "API-nøglen virker ikke. Tjek den under Indstillinger.",
-    "for-mange": "AI'en er travl lige nu. Prøv igen om lidt.",
+    "for-mange": "AI'en har travlt lige nu. Prøv igen om lidt.",
     netvaerk: "Ingen forbindelse. Tjek internettet og prøv igen.",
     afvist: "AI'en kunne ikke besvare den forespørgsel.",
     "ugyldigt-svar": "AI'en gav et svar, der ikke kunne bruges. Prøv igen.",
     ukendt: "Noget gik galt. Prøv igen.",
   } satisfies Record<AiErrorKind, string>,
 
-  common: { nv: "NV", kr: "kr.", cancel: "Annullér", save: "Gem", none: "–" },
+  common: { nv: "NV", kr: "kr.", cancel: "Annullér", save: "Gem", none: "–", saveError: "Kunne ikke gemme. Prøv igen.", type: "Type", bottlesShort: "fl." },
 
   cellar: {
     search: "Søg i vinkælderen", all: "Alle", sort: "Sortér", showEmpty: "Vis tomme",
     empty: "Din vinkælder er tom", noMatch: "Ingen vine passer til søgningen", addFirst: "Tilføj din første vin",
-    totals: (bottles: number, wines: number) => `${bottles} flasker · ${wines} vine`,
+    totals: (bottles: number, wines: number) => `${bottles} ${bottles === 1 ? "flaske" : "flasker"} · ${wines} ${wines === 1 ? "vin" : "vine"}`,
     backupReminder: "Det er længe siden, du har taget en sikkerhedskopi.",
     backupNow: "Tag sikkerhedskopi",
     plus: "Én flaske mere", minus: "Én flaske mindre",
@@ -50,7 +50,7 @@ export const da = {
     confirmTitle: "Er det den rigtige vin?", unsure: "AI'en er usikker – tjek oplysningerne",
     relookedUp: "Oplysningerne er opdateret – tjek dem igen", lookingUp: "Henter oplysninger for den rettede vin…",
     saveButton: "Gem i Min Vinkælder", saved: "Gemt!", scanNext: "Scan næste flaske", seeWine: "Se vinen",
-    duplicate: (n: number) => `Du har allerede denne vin (${n} flasker). Tilføj som nyt køb?`,
+    duplicate: (n: number) => `Du har allerede denne vin (${n} ${n === 1 ? "flaske" : "flasker"}). Tilføj som nyt køb?`,
     addToExisting: "Tilføj til eksisterende", saveAsNew: "Gem som ny vin",
     fields: {
       name: "Navn", producer: "Producent", vintage: "Årgang (tom = NV)", region: "Område", country: "Land", type: "Type",

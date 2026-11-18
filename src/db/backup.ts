@@ -54,7 +54,7 @@ function dataUrlToBlob(dataUrl: string): Blob {
   return new Blob([bytes], { type: m[1] });
 }
 
-/** Everything except the API key. Also records lastBackupAt. */
+/** Everything except the API key. Does not record lastBackupAt; saveBackupFile does once the file is out. */
 export async function exportBackup(): Promise<Blob> {
   const [wines, purchases, drinks, photos] = await Promise.all([
     db.wines.toArray(), db.purchases.toArray(), db.drinks.toArray(), db.photos.toArray(),
@@ -64,7 +64,6 @@ export async function exportBackup(): Promise<Blob> {
     wines, purchases, drinks,
     photos: await Promise.all(photos.map(async (p) => ({ id: p.id, dataUrl: await blobToDataUrl(p.blob) }))),
   };
-  await db.settings.put({ key: "lastBackupAt", value: file.exportedAt });
   return new Blob([JSON.stringify(file)], { type: "application/json" });
 }
 

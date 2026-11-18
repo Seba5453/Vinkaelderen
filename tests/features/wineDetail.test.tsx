@@ -80,3 +80,25 @@ test("Ret oplysninger saves edited notes without AI", async () => {
   await u.click(screen.getByRole("button", { name: "Gem" }));
   await waitFor(async () => expect((await getWineDetail(w.id))!.wine.notes).toBe("Ny note"));
 });
+
+test("FIX-I4 drink save failure shows a Danish error", async () => {
+  const w = await addWine(info(), { photo: null, bottles: 2, pricePerBottle: null });
+  const u = userEvent.setup();
+  renderAt(w.id);
+  await u.click(await screen.findByRole("button", { name: "Drak en flaske" }));
+  db.close({ disableAutoOpen: true });
+  await u.click(screen.getByRole("button", { name: "Gem" }));
+  expect(await screen.findByText(/Kunne ikke gemme/)).toBeInTheDocument();
+  await db.open();
+});
+
+test("FIX-M3 edit form refuses an empty name", async () => {
+  const w = await addWine(info(), { photo: null, bottles: 1, pricePerBottle: null });
+  const u = userEvent.setup();
+  renderAt(w.id);
+  await u.click(await screen.findByRole("button", { name: "Ret oplysninger" }));
+  await u.clear(screen.getByLabelText("Navn"));
+  await u.click(screen.getByRole("button", { name: "Gem" }));
+  expect(await screen.findByText("Vinen skal have et navn")).toBeInTheDocument();
+  expect((await getWineDetail(w.id))!.wine.name).toBe("Château Musar");
+});

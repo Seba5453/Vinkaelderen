@@ -20,11 +20,17 @@ const WireSchema = z.strictObject({
   aiConfidence: z.enum(["hoj", "middel", "lav"]).nullable(),
 });
 
-/** Validation applied to what comes back, including bounds. */
-export const WineInfoSchema = WireSchema.superRefine((w, ctx) => {
-  if (w.aiScore != null && (w.aiScore < 0 || w.aiScore > 5)) ctx.addIssue({ code: "custom", message: "aiScore 0-5" });
-  if (w.vintage != null && (w.vintage < 1800 || w.vintage > 2100)) ctx.addIssue({ code: "custom", message: "vintage" });
-  if (w.drinkFrom != null && w.drinkTo != null && w.drinkFrom > w.drinkTo) ctx.addIssue({ code: "custom", message: "window" });
+/** Validation applied to what comes back. Out-of-range values are nulled rather than discarding the whole scan. */
+export const WineInfoSchema = WireSchema.transform((w): WineInfo => {
+  const inRange = (n: number | null, lo: number, hi: number) => (n != null && n >= lo && n <= hi ? n : null);
+  const badWindow = w.drinkFrom != null && w.drinkTo != null && w.drinkFrom > w.drinkTo;
+  return {
+    ...w,
+    aiScore: inRange(w.aiScore, 0, 5),
+    vintage: inRange(w.vintage, 1800, 2100),
+    drinkFrom: badWindow ? null : inRange(w.drinkFrom, 1800, 2200),
+    drinkTo: badWindow ? null : inRange(w.drinkTo, 1800, 2200),
+  };
 }) as unknown as z.ZodType<WineInfo>;
 
 /** Removes $schema and numeric bounds, which structured outputs may not accept. */

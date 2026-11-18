@@ -40,12 +40,9 @@ test("low-confidence result with nulls is returned, not thrown", async () => {
   expect(await identifyFromPhoto(fakeClient(okResponse(unsure)), img)).toEqual(unsure);
 });
 
-test("aiScore 7 -> ugyldigt-svar", async () => {
-  await expect(identifyFromPhoto(fakeClient(okResponse(info({ aiScore: 7 }))), img)).rejects.toMatchObject({ kind: "ugyldigt-svar" });
-});
-
-test("drinkFrom after drinkTo -> ugyldigt-svar", async () => {
-  await expect(identifyFromPhoto(fakeClient(okResponse(info({ drinkFrom: 2040, drinkTo: 2030 }))), img)).rejects.toMatchObject({ kind: "ugyldigt-svar" });
+test("missing required field -> ugyldigt-svar", async () => {
+  const { name: _n, ...noName } = info();
+  await expect(identifyFromPhoto(fakeClient(okResponse(noName)), img)).rejects.toMatchObject({ kind: "ugyldigt-svar" });
 });
 
 test("lookupByText sends no image and includes name/producer/vintage text", async () => {
@@ -77,4 +74,12 @@ test("json schema carries no numeric bounds", () => {
   const s = JSON.stringify(wineInfoJsonSchema);
   expect(s).not.toContain("minimum");
   expect(s).not.toContain("maximum");
+});
+
+test("FIX-M2 out-of-range fields are nulled instead of rejecting the scan", async () => {
+  const r = await identifyFromPhoto(fakeClient(okResponse(info({ aiScore: 7, vintage: 1066, drinkFrom: 2040, drinkTo: 2030 }))), img);
+  expect(r.name).toBe("Château Musar");
+  expect(r.aiScore).toBeNull();
+  expect(r.vintage).toBeNull();
+  expect([r.drinkFrom, r.drinkTo]).toEqual([null, null]);
 });

@@ -35,3 +35,16 @@ test("mergeLookup keeps touched name even if AI spells it differently", () => {
   const merged = mergeLookup({ ...a, name: "Musar Rouge" }, new Set(["name"]), info({ name: "Château Musar Rouge" }));
   expect(merged.name).toBe("Musar Rouge");
 });
+
+test("FIX-I1 mergeLookup always keeps the user's identity fields, even untouched", () => {
+  const current = { ...a, vintage: 2019 };
+  const merged = mergeLookup(current, new Set(["vintage"]), info({ name: "Château Musar Rouge DOCG", producer: "Musar", vintage: 2018 }));
+  expect(merged.name).toBe("Château Musar");
+  expect(merged.producer).toBe("Château Musar");
+  expect(merged.vintage).toBe(2019);
+});
+test("FIX-I1 empty AI name never wipes the name", () => {
+  const merged = mergeLookup({ ...a, vintage: null }, new Set(["vintage"]), info({ name: "", vintage: 2010 }));
+  expect(merged.name).toBe("Château Musar");
+  expect(merged.vintage).toBeNull();
+});

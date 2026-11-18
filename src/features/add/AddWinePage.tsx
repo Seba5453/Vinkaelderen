@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { da } from "../../i18n/da";
 import { createAiClient, type AiClient } from "../../ai/client";
@@ -34,6 +34,23 @@ export default function AddWinePage({ client: injected }: { client?: AiClient })
   const [error, setError] = useState<string | null>(null);
   const [duplicate, setDuplicate] = useState<Wine | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+
+  /** Runs a save once at a time; storage errors become a Danish message instead of a silent failure. */
+  async function guarded(fn: () => Promise<void>) {
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+    try {
+      await fn();
+    } catch {
+      setError(da.common.saveError);
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  }
 
   function reset() {
     setStep("start"); setPhoto(null); setForm(emptyForm()); setTouched(new Set()); setLastAi(null);
@@ -69,7 +86,7 @@ export default function AddWinePage({ client: injected }: { client?: AiClient })
     setNotice(null);
   }
 
-  async function onSave() {
+  const onSave = () => guarded(async () => {
     const current = fromForm(form);
     setError(null);
     if (!current.name) { setError(da.add.nameRequired); return; }
@@ -93,18 +110,18 @@ export default function AddWinePage({ client: injected }: { client?: AiClient })
     const dup = findDuplicate(await listWines(), current);
     if (dup) { setDuplicate(dup); setStep("duplicate"); return; }
     await saveNew(current);
-  }
+  });
 
   async function saveNew(current: WineInfo) {
     const w = await addWine(current, { photo, bottles: quantity, pricePerBottle: parsePrice(price) });
     setSavedId(w.id); setStep("saved");
   }
 
-  async function addToExisting() {
+  const addToExisting = () => guarded(async () => {
     if (!duplicate) return;
     await addPurchase(duplicate.id, quantity, parsePrice(price));
     setSavedId(duplicate.id); setStep("saved");
-  }
+  });
 
   return (
     <section className="page">
@@ -128,12 +145,12 @@ export default function AddWinePage({ client: injected }: { client?: AiClient })
           {error && <p role="alert">{error}</p>}
           {notice && <p className="banner">{notice}</p>}
           <ConfirmForm form={form} onChange={onChange} quantity={quantity} onQuantity={setQuantity} price={price} onPrice={setPrice} />
-          {step === "form" && <button className="primary big" onClick={onSave}>{da.add.saveButton}</button>}
+          {step === "form" && <button className="primary big" disabled={saving} onClick={onSave}>{da.add.saveButton}</button>}
           {step === "duplicate" && duplicate && (
             <div className="confirm">
               <p>{da.add.duplicate(duplicate.quantity)}</p>
-              <button className="primary" onClick={addToExisting}>{da.add.addToExisting}</button>
-              <button onClick={() => saveNew(fromForm(form))}>{da.add.saveAsNew}</button>
+              <button className="primary" disabled={saving} onClick={addToExisting}>{da.add.addToExisting}</button>
+              <button disabled={saving} onClick={() => guarded(() => saveNew(fromForm(form)))}>{da.add.saveAsNew}</button>
             </div>
           )}
         </>

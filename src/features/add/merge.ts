@@ -11,9 +11,12 @@ export function needsRelookup(lastAi: Identity | null, current: WineInfo): boole
   return norm(lastAi.name) !== norm(current.name) || norm(lastAi.producer) !== norm(current.producer) || lastAi.vintage !== current.vintage;
 }
 
-/** Fields the user edited by hand win; everything else takes the fresh AI answer. */
+const IDENTITY: readonly WineField[] = ["name", "producer", "vintage"];
+
+/** Fields the user edited by hand, and the wine's identity (name, producer, vintage), always win;
+ *  everything else takes the fresh AI answer. */
 export function mergeLookup(current: WineInfo, touched: ReadonlySet<WineField>, fresh: WineInfo): WineInfo {
   const out = { ...fresh } as Record<WineField, unknown>;
-  for (const f of touched) out[f] = current[f];
+  for (const f of [...touched, ...IDENTITY]) out[f] = current[f];
   return out as unknown as WineInfo;
 }

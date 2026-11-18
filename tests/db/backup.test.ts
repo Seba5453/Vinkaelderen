@@ -22,11 +22,10 @@ test("export then import restores wines, purchases, drinks and photos", async ()
   expect(await d.photo!.text()).toBe("img");
 });
 
-test("export excludes apiKey and records lastBackupAt", async () => {
+test("export excludes apiKey", async () => {
   await setSetting("apiKey", "sk-secret");
   const text = await (await exportBackup()).text();
   expect(text).not.toContain("sk-secret");
-  expect(await getSetting("lastBackupAt")).toBeTruthy();
 });
 
 test("import keeps the current apiKey", async () => {

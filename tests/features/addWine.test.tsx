@@ -125,3 +125,23 @@ test("Scan næste flaske resets the page", async () => {
   await waitFor(() => expect(screen.getByLabelText("Tag billede")).toBeInTheDocument());
   expect(screen.queryByText("Er det den rigtige vin?")).toBeNull();
 });
+
+test("FIX-I4 double tap on Gem creates one wine", async () => {
+  const u = user();
+  renderPage(fakeClient(okResponse(info())));
+  await scan(u);
+  const btn = screen.getByRole("button", { name: "Gem i Min Vinkælder" });
+  await Promise.all([u.click(btn), u.click(btn)]);
+  await screen.findByText("Gemt!");
+  expect(await listWines()).toHaveLength(1);
+});
+
+test("FIX-I4 storage failure shows a Danish error instead of failing silently", async () => {
+  const u = user();
+  renderPage(fakeClient(okResponse(info())));
+  await scan(u);
+  db.close({ disableAutoOpen: true });
+  await u.click(screen.getByRole("button", { name: "Gem i Min Vinkælder" }));
+  expect(await screen.findByText(/Kunne ikke gemme/)).toBeInTheDocument();
+  await db.open();
+});

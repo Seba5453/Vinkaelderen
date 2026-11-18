@@ -93,7 +93,10 @@ export default function AskPage({ client: injected }: { client?: AiClient }) {
 
       {opening && (
         <DrinkDialog wineName={opening.name} onCancel={() => setOpening(null)}
-          onConfirm={async (rating, note) => { await logDrink(opening.id, rating, note); setOpening(null); }} />
+          onConfirm={async (rating, note) => {
+            try { await logDrink(opening.id, rating, note); } catch { setError(da.common.saveError); }
+            setOpening(null);
+          }} />
       )}
     </section>
   );

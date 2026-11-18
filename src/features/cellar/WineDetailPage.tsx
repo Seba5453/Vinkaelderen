@@ -20,6 +20,12 @@ export default function WineDetailPage() {
   const [drinking, setDrinking] = useState(false);
   const [buying, setBuying] = useState(false);
   const [editing, setEditing] = useState<FormState | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  /** Storage writes: show a Danish error instead of failing silently. */
+  const safely = async (fn: () => Promise<unknown>) => {
+    setError(null);
+    try { await fn(); return true; } catch { setError(da.common.saveError); return false; }
+  };
 
   if (detail === undefined) return <section className="page" />;
   if (detail === null) return <section className="page"><p>{t.notFound}</p></section>;
@@ -43,10 +49,11 @@ export default function WineDetailPage() {
         <button className="primary grow" disabled={wine.quantity <= 0} onClick={() => setDrinking(true)}>{t.drankOne}</button>
         <button className="grow" onClick={() => setBuying(true)}>{t.buyMore}</button>
       </div>
-      {buying && <BuyMore wineId={wine.id} onDone={() => setBuying(false)} />}
+      {error && <p role="alert">{error}</p>}
+      {buying && <BuyMore wineId={wine.id} safely={safely} onDone={() => setBuying(false)} />}
 
       {editing ? (
-        <EditWine wine={wine} form={editing} setForm={setEditing} />
+        <EditWine wine={wine} form={editing} setForm={setEditing} safely={safely} />
       ) : (
         <>
           <Facts wine={wine} />
@@ -57,7 +64,7 @@ export default function WineDetailPage() {
       <div className="card">
         <h2>{t.purchases}</h2>
         <ul className="log">{byDate(purchases).map((p) => (
-          <li key={p.id}>{formatDate(p.date)}: {p.pricePerBottle != null ? `${p.bottles} × ${formatKr(p.pricePerBottle)}` : `${p.bottles} fl.`}</li>
+          <li key={p.id}>{formatDate(p.date)}: {p.pricePerBottle != null ? `${p.bottles} × ${formatKr(p.pricePerBottle)}` : `${p.bottles} ${da.common.bottlesShort}`}</li>
         ))}</ul>
       </div>
       {drinks.length > 0 && (
@@ -71,18 +78,27 @@ export default function WineDetailPage() {
 
       {drinking && (
         <DrinkDialog wineName={wine.name} onCancel={() => setDrinking(false)}
-          onConfirm={async (rating, note) => { await logDrink(wine.id, rating, note); setDrinking(false); }} />
+          onConfirm={async (rating, note) => { await safely(() => logDrink(wine.id, rating, note)); setDrinking(false); }} />
       )}
     </section>
   );
 }
 
-function EditWine({ wine, form, setForm }: { wine: Wine; form: FormState; setForm(f: FormState | null): void }) {
+type Safely = (fn: () => Promise<unknown>) => Promise<boolean>;
+
+function EditWine({ wine, form, setForm, safely }: { wine: Wine; form: FormState; setForm(f: FormState | null): void; safely: Safely }) {
+  const [nameError, setNameError] = useState(false);
+  async function save() {
+    const info = fromForm(form);
+    if (!info.name) { setNameError(true); return; }
+    if (await safely(() => updateWineInfo(wine.id, info))) setForm(null);
+  }
   return (
     <>
-      <ConfirmForm title={t.edit} form={form} onChange={(_, f) => setForm(f)} />
+      <ConfirmForm title={t.edit} form={form} onChange={(_, f) => { setNameError(false); setForm(f); }} />
+      {nameError && <p role="alert">{da.add.nameRequired}</p>}
       <div className="row">
-        <button className="primary grow" onClick={async () => { await updateWineInfo(wine.id, fromForm(form)); setForm(null); }}>{da.common.save}</button>
+        <button className="primary grow" onClick={save}>{da.common.save}</button>
         <button onClick={() => setForm(null)}>{da.common.cancel}</button>
       </div>
     </>
@@ -97,7 +113,7 @@ function Facts({ wine }: { wine: Wine }) {
   return (
     <div className="card">
       <dl className="facts">
-        <dt>Type</dt><dd>{da.typeLabels[wine.type]}</dd>
+        <dt>{da.common.type}</dt><dd>{da.typeLabels[wine.type]}</dd>
         {rows.filter(([, v]) => v).map(([k, v]) => <FactRow key={k} k={k} v={v!} />)}
       </dl>
     </div>
@@ -106,7 +122,7 @@ function Facts({ wine }: { wine: Wine }) {
 
 const FactRow = ({ k, v }: { k: string; v: string }) => <><dt>{k}</dt><dd>{v}</dd></>;
 
-function BuyMore({ wineId, onDone }: { wineId: string; onDone(): void }) {
+function BuyMore({ wineId, onDone, safely }: { wineId: string; onDone(): void; safely: Safely }) {
   const [bottles, setBottles] = useState("1");
   const [price, setPrice] = useState("");
   const n = Number.parseInt(bottles, 10);
@@ -119,7 +135,7 @@ function BuyMore({ wineId, onDone }: { wineId: string; onDone(): void }) {
       <input id="buy-p" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} />
       <div className="row">
         <button className="primary grow" disabled={!(n > 0)}
-          onClick={async () => { await addPurchase(wineId, n, Number.isFinite(p) && p >= 0 ? p : null); onDone(); }}>{t.addPurchase}</button>
+          onClick={async () => { if (await safely(() => addPurchase(wineId, n, Number.isFinite(p) && p >= 0 ? p : null))) onDone(); }}>{t.addPurchase}</button>
         <button onClick={onDone}>{da.common.cancel}</button>
       </div>
     </div>
