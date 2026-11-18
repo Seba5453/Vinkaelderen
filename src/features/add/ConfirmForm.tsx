@@ -47,17 +47,19 @@ const FIELDS: Array<{ key: TextField; label: string; numeric?: boolean; multilin
 interface Props {
   form: FormState;
   onChange(field: WineField, form: FormState): void;
-  quantity: number;
-  onQuantity(n: number): void;
-  price: string;
-  onPrice(s: string): void;
+  title?: string;
+  /** Quantity and price are shown only when these handlers are given (not when editing an existing wine). */
+  quantity?: number;
+  onQuantity?(n: number): void;
+  price?: string;
+  onPrice?(s: string): void;
 }
 
-export default function ConfirmForm({ form, onChange, quantity, onQuantity, price, onPrice }: Props) {
+export default function ConfirmForm({ form, onChange, title = da.add.confirmTitle, quantity = 1, onQuantity, price = "", onPrice }: Props) {
   const set = <K extends keyof FormState>(k: K & WineField, v: FormState[K]) => onChange(k, { ...form, [k]: v });
   return (
     <div className="card">
-      <h2>{da.add.confirmTitle}</h2>
+      <h2>{title}</h2>
       {form.aiConfidence === "lav" && <p className="banner">{da.add.unsure}</p>}
       {form.aiScore != null && <p>{da.detail.aiScore}: {formatScore(form.aiScore)} / 5</p>}
       {FIELDS.slice(0, 5).map(renderField)}
@@ -67,14 +69,22 @@ export default function ConfirmForm({ form, onChange, quantity, onQuantity, pric
       </select>
       {FIELDS.slice(5).map(renderField)}
 
-      <span className="muted">{f.quantity}</span>
-      <div className="stepper">
-        <button type="button" aria-label={da.cellar.minus} onClick={() => onQuantity(Math.max(1, quantity - 1))}>−</button>
-        <strong aria-live="polite">{quantity}</strong>
-        <button type="button" aria-label={da.cellar.plus} onClick={() => onQuantity(quantity + 1)}>+</button>
-      </div>
-      <label htmlFor="f-price">{f.price}</label>
-      <input id="f-price" inputMode="decimal" value={price} onChange={(e) => onPrice(e.target.value)} />
+      {onQuantity && (
+        <>
+          <span className="muted">{f.quantity}</span>
+          <div className="stepper">
+            <button type="button" aria-label={da.cellar.minus} onClick={() => onQuantity(Math.max(1, quantity - 1))}>−</button>
+            <strong aria-live="polite">{quantity}</strong>
+            <button type="button" aria-label={da.cellar.plus} onClick={() => onQuantity(quantity + 1)}>+</button>
+          </div>
+        </>
+      )}
+      {onPrice && (
+        <>
+          <label htmlFor="f-price">{f.price}</label>
+          <input id="f-price" inputMode="decimal" value={price} onChange={(e) => onPrice(e.target.value)} />
+        </>
+      )}
     </div>
   );
 

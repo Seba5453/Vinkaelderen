@@ -27,7 +27,7 @@ export const da = {
 
   cellar: {
     search: "Søg i vinkælderen", all: "Alle", sort: "Sortér", showEmpty: "Vis tomme",
-    empty: "Din vinkælder er tom", addFirst: "Tilføj din første vin",
+    empty: "Din vinkælder er tom", noMatch: "Ingen vine passer til søgningen", addFirst: "Tilføj din første vin",
     totals: (bottles: number, wines: number) => `${bottles} flasker · ${wines} vine`,
     backupReminder: "Det er længe siden, du har taget en sikkerhedskopi.",
     backupNow: "Tag sikkerhedskopi",
