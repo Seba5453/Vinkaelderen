@@ -64,3 +64,5 @@ button.danger { border-color: var(--warn); color: var(--warn); }
 .dialog { background: var(--card); width: 100%; max-width: 640px; border-radius: 18px 18px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px; }
 .stars { display: flex; gap: 4px; flex-wrap: wrap; }
 .stars button[aria-pressed=true] { background: var(--wine); color: #fff; border-color: var(--wine); }
+label.cta { display: block; text-align: center; background: var(--wine); color: #fff; font-size: 1.15rem; font-weight: 600;
+  padding: 22px 16px; border-radius: 14px; cursor: pointer; }
