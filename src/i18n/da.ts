@@ -41,6 +41,7 @@ export const da = {
     purchases: "Køb", drinks: "Drukket", drankOne: "Drak en flaske", buyMore: "Køb flere", edit: "Ret oplysninger",
     bottles: "Antal flasker", price: "Pris pr. flaske", addPurchase: "Tilføj køb", notFound: "Vinen findes ikke",
     back: "Tilbage",
+    editPrice: "Ret pris", savePrice: "Gem pris", priceLabel: "Pris pr. flaske (kr.)", priceInvalid: "Skriv en pris i kr., fx 149,95",
   },
 
   drink: { title: (name: string) => `Drak en flaske ${name}`, rating: "Din vurdering (0–5)", note: "Note", confirm: "Gem", noRating: "Ingen" },

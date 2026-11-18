@@ -28,6 +28,12 @@ export async function addPurchase(wineId: string, bottles: number, pricePerBottl
   });
 }
 
+/** Set or clear the price on an existing purchase (e.g. forgotten at scan time). */
+export async function updatePurchasePrice(purchaseId: string, pricePerBottle: number | null): Promise<void> {
+  const n = await db.purchases.update(purchaseId, { pricePerBottle });
+  if (!n && !(await db.purchases.get(purchaseId))) throw new Error(`Unknown purchase ${purchaseId}`);
+}
+
 /** Manual correction of the count. Clamped at 0; never creates a purchase. */
 export async function adjustQuantity(wineId: string, delta: number): Promise<number> {
   return db.transaction("rw", db.wines, async () => {

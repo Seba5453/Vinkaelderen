@@ -102,3 +102,38 @@ test("FIX-M3 edit form refuses an empty name", async () => {
   expect(await screen.findByText("Vinen skal have et navn")).toBeInTheDocument();
   expect((await getWineDetail(w.id))!.wine.name).toBe("Château Musar");
 });
+
+test("adds a forgotten price to an existing purchase", async () => {
+  const w = await addWine(info(), { photo: null, bottles: 2, pricePerBottle: null, date: "2026-03-01" });
+  const u = userEvent.setup();
+  renderAt(w.id);
+  await u.click(await screen.findByRole("button", { name: "Ret pris" }));
+  await u.type(screen.getByLabelText("Pris pr. flaske (kr.)"), "189,95");
+  await u.click(screen.getByRole("button", { name: "Gem pris" }));
+  expect(await screen.findByText(/2 × 189,95 kr\./)).toBeInTheDocument();
+  expect((await getWineDetail(w.id))!.purchases[0].pricePerBottle).toBe(189.95);
+});
+
+test("an existing price can be changed or removed", async () => {
+  const w = await addWine(info(), { photo: null, bottles: 1, pricePerBottle: 200 });
+  const u = userEvent.setup();
+  renderAt(w.id);
+  await u.click(await screen.findByRole("button", { name: "Ret pris" }));
+  const input = screen.getByLabelText("Pris pr. flaske (kr.)");
+  expect(input).toHaveValue("200");
+  await u.clear(input);
+  await u.click(screen.getByRole("button", { name: "Gem pris" }));
+  await waitFor(async () => expect((await getWineDetail(w.id))!.purchases[0].pricePerBottle).toBeNull());
+  expect(await screen.findByText(/1 fl\./)).toBeInTheDocument();
+});
+
+test("an invalid price shows an error and saves nothing", async () => {
+  const w = await addWine(info(), { photo: null, bottles: 1, pricePerBottle: null });
+  const u = userEvent.setup();
+  renderAt(w.id);
+  await u.click(await screen.findByRole("button", { name: "Ret pris" }));
+  await u.type(screen.getByLabelText("Pris pr. flaske (kr.)"), "abc");
+  await u.click(screen.getByRole("button", { name: "Gem pris" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Skriv en pris i kr., fx 149,95");
+  expect((await getWineDetail(w.id))!.purchases[0].pricePerBottle).toBeNull();
+});

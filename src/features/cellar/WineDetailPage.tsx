@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useNavigate, useParams } from "react-router-dom";
 import { da, formatDate, formatKr, formatScore } from "../../i18n/da";
-import { addPurchase, getWineDetail, logDrink, updateWineInfo } from "../../db/repo";
+import { addPurchase, getWineDetail, logDrink, updatePurchasePrice, updateWineInfo } from "../../db/repo";
 import { latestOwnRating } from "../../domain/cellar";
-import type { Wine } from "../../domain/types";
+import type { Purchase, Wine } from "../../domain/types";
 import ConfirmForm, { fromForm, toForm, type FormState } from "../add/ConfirmForm";
 import DrinkDialog from "./DrinkDialog";
 import { StatusBadge, vintageLabel } from "./WineBits";
@@ -64,7 +64,7 @@ export default function WineDetailPage() {
       <div className="card">
         <h2>{t.purchases}</h2>
         <ul className="log">{byDate(purchases).map((p) => (
-          <li key={p.id}>{formatDate(p.date)}: {p.pricePerBottle != null ? `${p.bottles} × ${formatKr(p.pricePerBottle)}` : `${p.bottles} ${da.common.bottlesShort}`}</li>
+          <PurchaseRow key={p.id} p={p} safely={safely} />
         ))}</ul>
       </div>
       {drinks.length > 0 && (
@@ -139,5 +139,33 @@ function BuyMore({ wineId, onDone, safely }: { wineId: string; onDone(): void; s
         <button onClick={onDone}>{da.common.cancel}</button>
       </div>
     </div>
+  );
+}
+
+function PurchaseRow({ p, safely }: { p: Purchase; safely: Safely }) {
+  const [price, setPrice] = useState<string | null>(null);
+  const [invalid, setInvalid] = useState(false);
+  const inputId = `price-${p.id}`;
+  async function save() {
+    const raw = (price ?? "").trim().replace(",", ".");
+    const value = raw === "" ? null : Number(raw);
+    if (value !== null && !(Number.isFinite(value) && value >= 0)) { setInvalid(true); return; }
+    if (await safely(() => updatePurchasePrice(p.id, value))) setPrice(null);
+  }
+  return (
+    <li>
+      {formatDate(p.date)}: {p.pricePerBottle != null ? `${p.bottles} × ${formatKr(p.pricePerBottle)}` : `${p.bottles} ${da.common.bottlesShort}`}
+      {price === null ? (
+        <> <button onClick={() => setPrice(p.pricePerBottle != null ? String(p.pricePerBottle).replace(".", ",") : "")}>{t.editPrice}</button></>
+      ) : (
+        <div className="row">
+          <label htmlFor={inputId}>{t.priceLabel}</label>
+          <input id={inputId} inputMode="decimal" autoFocus value={price} onChange={(e) => { setInvalid(false); setPrice(e.target.value); }} />
+          <button className="primary" onClick={save}>{t.savePrice}</button>
+          <button onClick={() => { setInvalid(false); setPrice(null); }}>{da.common.cancel}</button>
+          {invalid && <p role="alert">{t.priceInvalid}</p>}
+        </div>
+      )}
+    </li>
   );
 }

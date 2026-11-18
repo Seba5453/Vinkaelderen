@@ -1,5 +1,5 @@
 import { db } from "../../src/db/db";
-import { addWine, addPurchase, adjustQuantity, logDrink, listWines, getWineDetail, getSetting, setSetting, updateWineInfo } from "../../src/db/repo";
+import { addWine, addPurchase, adjustQuantity, logDrink, listWines, getWineDetail, getSetting, setSetting, updateWineInfo, updatePurchasePrice } from "../../src/db/repo";
 import { info } from "../factories";
 
 beforeEach(async () => { await db.delete(); await db.open(); });
@@ -55,4 +55,20 @@ test("settings round-trip", async () => {
   expect(await getSetting("apiKey")).toBeUndefined();
   await setSetting("apiKey", "sk-test");
   expect(await getSetting<string>("apiKey")).toBe("sk-test");
+});
+
+test("updatePurchasePrice sets and clears the price without touching bottles or quantity", async () => {
+  const w = await addWine(info(), { photo: null, bottles: 3, pricePerBottle: null });
+  const [p] = (await getWineDetail(w.id))!.purchases;
+  await updatePurchasePrice(p.id, 249.5);
+  let d = (await getWineDetail(w.id))!;
+  expect(d.purchases[0]).toMatchObject({ pricePerBottle: 249.5, bottles: 3 });
+  expect(d.wine.quantity).toBe(3);
+  await updatePurchasePrice(p.id, null);
+  d = (await getWineDetail(w.id))!;
+  expect(d.purchases[0].pricePerBottle).toBeNull();
+});
+
+test("updatePurchasePrice rejects an unknown purchase", async () => {
+  await expect(updatePurchasePrice("nope", 100)).rejects.toThrow();
 });
