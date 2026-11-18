@@ -7,8 +7,10 @@ export const BACKUP_FORMAT = "winecellar-backup";
 export const BACKUP_VERSION = 1;
 
 export class BackupError extends Error {
-  constructor(public kind: "ugyldig-fil" | "forkert-version") {
+  kind: "ugyldig-fil" | "forkert-version";
+  constructor(kind: "ugyldig-fil" | "forkert-version") {
     super(kind);
+    this.kind = kind;
     this.name = "BackupError";
   }
 }
