@@ -1,7 +1,12 @@
-import type { DrinkLog, Purchase, Wine, WineInfo, WineType } from "./types";
+import type { DrinkLog, DrinkStatus, Purchase, Wine, WineInfo, WineType } from "./types";
+import { drinkStatus } from "./status";
 
 export type SortKey = "drink-first" | "name" | "vintage" | "score";
-export interface CellarQuery { search: string; type: WineType | "alle"; sort: SortKey; includeEmpty: boolean; }
+export interface CellarQuery {
+  search: string; type: WineType | "alle"; sort: SortKey; includeEmpty: boolean;
+  /** Only wines with this drinking status in `year` (default: current year). */
+  status?: DrinkStatus; year?: number;
+}
 
 const norm = (s: string | null | undefined) => (s ?? "").trim().toLowerCase();
 
@@ -18,6 +23,7 @@ export function queryCellar(wines: Wine[], q: CellarQuery): Wine[] {
   const filtered = wines.filter((w) => {
     if (!q.includeEmpty && w.quantity <= 0) return false;
     if (q.type !== "alle" && w.type !== q.type) return false;
+    if (q.status && drinkStatus(w, q.year ?? new Date().getFullYear()) !== q.status) return false;
     if (!s) return true;
     return [w.name, w.producer, w.region, w.country, ...w.grapes].some((f) => norm(f).includes(s));
   });

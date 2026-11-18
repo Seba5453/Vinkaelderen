@@ -66,3 +66,11 @@ button.danger { border-color: var(--warn); color: var(--warn); }
 .stars button[aria-pressed=true] { background: var(--wine); color: #fff; border-color: var(--wine); }
 label.cta { display: block; text-align: center; background: var(--wine); color: #fff; font-size: 1.15rem; font-weight: 600;
   padding: 22px 16px; border-radius: 14px; cursor: pointer; }
+
+.overview { display: flex; gap: 8px; }
+.overview-item { flex: 1; font-weight: 600; padding: 12px; border-radius: 12px; border: 1px solid currentColor; background: transparent; }
+.overview-item.status-drik-snart { color: var(--warn); }
+.overview-item.status-klar { color: var(--ok); }
+.overview-item[aria-pressed="true"] { color: #fff; }
+.overview-item.status-drik-snart[aria-pressed="true"] { background: var(--warn); }
+.overview-item.status-klar[aria-pressed="true"] { background: var(--ok); }

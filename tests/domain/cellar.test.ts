@@ -69,3 +69,15 @@ test("latestOwnRating takes most recent rated log", () => {
   ])).toBe(5);
   expect(latestOwnRating([])).toBeNull();
 });
+
+test("status filter keeps only wines with that drinking status in the given year", () => {
+  const ws = [
+    wine({ id: "a", drinkFrom: 2030, drinkTo: 2040 }),
+    wine({ id: "b", drinkFrom: 2020, drinkTo: 2030 }),
+    wine({ id: "c", drinkFrom: 2018, drinkTo: 2026 }),
+  ];
+  const base: CellarQuery = { search: "", type: "alle", sort: "name", includeEmpty: false };
+  expect(queryCellar(ws, { ...base, status: "drik-snart", year: 2026 }).map((w) => w.id)).toEqual(["c"]);
+  expect(queryCellar(ws, { ...base, status: "klar", year: 2026 }).map((w) => w.id)).toEqual(["b"]);
+  expect(queryCellar(ws, { ...base, year: 2026 })).toHaveLength(3);
+});

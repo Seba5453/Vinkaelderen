@@ -32,6 +32,7 @@ export const da = {
     backupReminder: "Det er længe siden, du har taget en sikkerhedskopi.",
     backupNow: "Tag sikkerhedskopi",
     plus: "Én flaske mere", minus: "Én flaske mindre",
+    overview: "Overblik", soonCount: (n: number) => `Drik snart: ${n}`, readyCount: (n: number) => `Klar: ${n}`,
   },
 
   detail: {

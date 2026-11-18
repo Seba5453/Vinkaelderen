@@ -5,7 +5,8 @@ import { da } from "../../i18n/da";
 import { db } from "../../db/db";
 import { adjustQuantity, listWines } from "../../db/repo";
 import { queryCellar, type CellarQuery, type SortKey } from "../../domain/cellar";
-import { WINE_TYPES, type Wine } from "../../domain/types";
+import { WINE_TYPES, type DrinkStatus, type Wine } from "../../domain/types";
+import { drinkStatus } from "../../domain/status";
 import { StatusBadge, WineThumb, vintageLabel } from "./WineBits";
 
 const REMINDER_DAYS = 30;
@@ -21,6 +22,20 @@ function BackupReminder() {
   return (
     <div role="status" className="banner">
       <span>{t.backupReminder}</span> <Link to="/indstillinger">{t.backupNow}</Link>
+    </div>
+  );
+}
+
+function Overview({ inStock, status, onToggle }: { inStock: Wine[]; status?: DrinkStatus; onToggle(s: DrinkStatus): void }) {
+  const year = new Date().getFullYear();
+  const count = (s: DrinkStatus) => inStock.filter((w) => drinkStatus(w, year) === s).length;
+  const items = ([["drik-snart", count("drik-snart"), t.soonCount], ["klar", count("klar"), t.readyCount]] as const).filter(([, n]) => n > 0);
+  if (items.length === 0) return null;
+  return (
+    <div role="group" aria-label={t.overview} className="overview">
+      {items.map(([s, n, label]) => (
+        <button key={s} className={`overview-item status-${s}`} aria-pressed={status === s} onClick={() => onToggle(s)}>{label(n)}</button>
+      ))}
     </div>
   );
 }
@@ -48,7 +63,11 @@ export default function CellarPage() {
   if (!wines) return <section className="page"><h1>{da.appName}</h1></section>;
 
   const inStock = wines.filter((w) => w.quantity > 0);
-  const shown = queryCellar(wines, q);
+  // A status filter only applies while that status still has in-stock wines;
+  // otherwise its button is gone and the list would stay empty with no way back.
+  const year = new Date().getFullYear();
+  const status = q.status && inStock.some((w) => drinkStatus(w, year) === q.status) ? q.status : undefined;
+  const shown = queryCellar(wines, { ...q, status, year });
   const bottles = inStock.reduce((n, w) => n + w.quantity, 0);
 
   return (
@@ -56,6 +75,7 @@ export default function CellarPage() {
       <h1>{da.appName}</h1>
       <BackupReminder />
       {inStock.length > 0 && <p className="muted">{t.totals(bottles, inStock.length)}</p>}
+      <Overview inStock={inStock} status={status} onToggle={(s) => setQ({ ...q, status: status === s ? undefined : s })} />
 
       <input aria-label={t.search} placeholder={t.search} type="search" value={q.search}
         onChange={(e) => setQ({ ...q, search: e.target.value })} />

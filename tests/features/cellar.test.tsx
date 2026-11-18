@@ -78,3 +78,47 @@ test("plus adds a bottle without a purchase", async () => {
   await waitFor(async () => expect((await getWineDetail(w.id))!.wine.quantity).toBe(2));
   expect((await getWineDetail(w.id))!.purchases).toHaveLength(1);
 });
+
+const overview = () => screen.getByRole("group", { name: "Overblik" });
+
+test("overview counts wines to drink soon and ready, and filters the list", async () => {
+  await seed();
+  await addWine(info({ name: "Klar Chianti", drinkFrom: 2020, drinkTo: 2090, type: "rod" }), { photo: null, bottles: 4, pricePerBottle: null });
+  const u = userEvent.setup();
+  renderPage();
+  await screen.findByText(/Klar Chianti/);
+  const soon = within(overview()).getByRole("button", { name: "Drik snart: 1" });
+  expect(within(overview()).getByRole("button", { name: "Klar: 1" })).toBeInTheDocument();
+  await u.click(soon);
+  expect(soon).toHaveAttribute("aria-pressed", "true");
+  expect(rows().map((r) => within(r).getByRole("link").textContent)).toEqual([expect.stringContaining("Gammel Rioja")]);
+  await u.click(soon);
+  expect(rows()).toHaveLength(4);
+});
+
+test("overview is hidden when nothing is ready or due", async () => {
+  await addWine(info({ name: "Ung Barolo", drinkFrom: 2090, drinkTo: 2099 }), { photo: null, bottles: 2, pricePerBottle: null });
+  renderPage();
+  await screen.findByText(/Ung Barolo/);
+  expect(screen.queryByRole("group", { name: "Overblik" })).not.toBeInTheDocument();
+});
+
+test("empty wines are not counted in the overview", async () => {
+  const w = await addWine(info({ name: "Gammel Rioja", drinkFrom: 2000, drinkTo: 2001 }), { photo: null, bottles: 1, pricePerBottle: null });
+  await addWine(info({ name: "Klar Chianti", drinkFrom: 2020, drinkTo: 2090 }), { photo: null, bottles: 1, pricePerBottle: null });
+  await adjustQuantity(w.id, -1);
+  renderPage();
+  await screen.findByText(/Klar Chianti/);
+  expect(within(overview()).queryByRole("button", { name: /Drik snart/ })).not.toBeInTheDocument();
+  expect(within(overview()).getByRole("button", { name: "Klar: 1" })).toBeInTheDocument();
+});
+
+test("when the last due wine runs out, the filter lets go and the full list shows", async () => {
+  await seed();
+  const u = userEvent.setup();
+  renderPage();
+  await u.click(await screen.findByRole("button", { name: "Drik snart: 1" }));
+  await u.click(within(rows()[0]).getByRole("button", { name: "Én flaske mindre" }));
+  await waitFor(() => expect(rows()).toHaveLength(2));
+  expect(screen.queryByRole("button", { name: /Drik snart/ })).not.toBeInTheDocument();
+});
