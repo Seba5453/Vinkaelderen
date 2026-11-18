@@ -108,3 +108,27 @@ test("AI error keeps the typed question", async () => {
   expect(await screen.findByText(/Ingen forbindelse/)).toBeInTheDocument();
   expect(screen.getByLabelText("Dit spørgsmål")).toHaveValue("Hvad skal vi drikke?");
 });
+
+test("Hvad mangler jeg? sends the fixed question and shows buying suggestions", async () => {
+  await seed();
+  const u = userEvent.setup();
+  const client = fakeClient(okResponse({
+    intro: "Du har meget rødvin, men intet til fisk.",
+    recommendations: [],
+    shoppingList: [{ suggestion: "Tør Riesling fra Mosel", reason: "Til fisk og skaldyr" }],
+  }));
+  renderPage(client);
+  await u.click(await screen.findByRole("button", { name: "Hvad mangler jeg?" }));
+  expect(await screen.findByText("Du har meget rødvin, men intet til fisk.")).toBeInTheDocument();
+  const list = screen.getByRole("region", { name: "Forslag til indkøb" });
+  expect(list).toHaveTextContent("Tør Riesling fra Mosel");
+  expect(list).toHaveTextContent("Til fisk og skaldyr");
+  const lastMsg = client.calls[0].messages.at(-1);
+  expect(lastMsg.content).toMatch(/mangler/i);
+  expect(screen.queryAllByRole("article")).toHaveLength(0);
+});
+
+test("Hvad mangler jeg? is disabled while the cellar is empty", async () => {
+  renderPage(fakeClient(reply([])));
+  expect(await screen.findByRole("button", { name: "Hvad mangler jeg?" })).toBeDisabled();
+});

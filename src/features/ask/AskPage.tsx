@@ -24,8 +24,8 @@ export default function AskPage({ client: injected }: { client?: AiClient }) {
   const [error, setError] = useState<string | null>(null);
   const [opening, setOpening] = useState<Wine | null>(null);
 
-  async function send() {
-    const q = question.trim();
+  async function send(text: string = question, keepTyped = false) {
+    const q = text.trim();
     if (!q || !client) return;
     setBusy(true);
     setError(null);
@@ -37,7 +37,7 @@ export default function AskPage({ client: injected }: { client?: AiClient }) {
       ]);
       const answer = await askSommelier(client, toCellarContext(all, purchases, drinks), history, q, new Date().getFullYear());
       setExchanges((xs) => [...xs, { question: q, answer }]);
-      setQuestion("");
+      if (!keepTyped) setQuestion("");
     } catch (e) {
       setError(da.aiErrors[toAiError(e).kind]);
     } finally {
@@ -78,6 +78,14 @@ export default function AskPage({ client: injected }: { client?: AiClient }) {
               </article>
             );
           })}
+          {x.answer.shoppingList.length > 0 && (
+            <section aria-label={t.shoppingTitle} className="card">
+              <h2>{t.shoppingTitle}</h2>
+              <ul className="log">{x.answer.shoppingList.map((s, n) => (
+                <li key={n}><strong>{s.suggestion}</strong><br /><span className="muted">{s.reason}</span></li>
+              ))}</ul>
+            </section>
+          )}
         </div>
       ))}
 
@@ -88,7 +96,8 @@ export default function AskPage({ client: injected }: { client?: AiClient }) {
       <div className="card">
         <label htmlFor="ask-q">{t.question}</label>
         <textarea id="ask-q" placeholder={t.placeholder} value={question} onChange={(e) => setQuestion(e.target.value)} />
-        <button className="primary" disabled={busy || !question.trim() || !client} onClick={send}>{t.send}</button>
+        <button className="primary" disabled={busy || !question.trim() || !client} onClick={() => send()}>{t.send}</button>
+        <button disabled={busy || !client || !wines.some((w) => w.quantity > 0)} onClick={() => send(t.missingQuestion, true)}>{t.missing}</button>
       </div>
 
       {opening && (

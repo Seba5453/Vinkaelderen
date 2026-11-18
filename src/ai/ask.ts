@@ -11,7 +11,8 @@ export interface CellarItemForAi {
   quantity: number; pricePerBottle: number | null;
 }
 export interface Recommendation { wineId: string; reason: string; }
-export interface SommelierAnswer { intro: string; recommendations: Recommendation[]; }
+export interface ShoppingItem { suggestion: string; reason: string; }
+export interface SommelierAnswer { intro: string; recommendations: Recommendation[]; shoppingList: ShoppingItem[]; }
 /** Assistant text is the JSON of a SommelierAnswer. */
 export interface ChatTurn { role: "user" | "assistant"; text: string; }
 
@@ -21,8 +22,15 @@ const AnswerSchema = z.strictObject({
     wineId: z.string().describe("id fra kælderlisten"),
     reason: z.string().describe("Kort begrundelse på dansk."),
   })).describe("I den rækkefølge flaskerne skal drikkes."),
+  shoppingList: z.array(z.strictObject({
+    suggestion: z.string().describe("Vin eller stil at købe, fx 'Tør Riesling fra Mosel'."),
+    reason: z.string().describe("Kort begrundelse på dansk: hvad det dækker, som kælderen mangler."),
+  })).describe("Kun når der spørges om, hvad der mangler/bør købes; ellers tom liste."),
 });
 const answerJsonSchema = toApiJsonSchema(AnswerSchema);
+/** Lenient on parse: older turns/answers may lack shoppingList. */
+const ParseSchema = AnswerSchema.extend({ shoppingList: AnswerSchema.shape.shoppingList.default([]) });
+const MAX_SHOPPING = 5;
 
 export function toCellarContext(wines: Wine[], purchases: Purchase[], drinks: DrinkLog[]): CellarItemForAi[] {
   return wines
@@ -42,6 +50,8 @@ Anbefal KUN vine fra kælderlisten herunder (brug deres id). Svar på dansk, kor
 - Tag hensyn til drikkevinduet (drinkFrom-drinkTo), pris pr. flaske (hverdagsvin vs. særlig flaske), aiScore og ejerens egne vurderinger (ownRating 0-5).
 - Rækkefølgen i recommendations er rækkefølgen flaskerne skal drikkes i (fx først en rødvin til maden, senere en portvin).
 - Hvis intet passer, så sig det i intro og returnér en tom liste.
+- Spørger ejeren hvad der mangler, eller hvad der bør købes, så vurdér kælderen som helhed (typer, stilarter, madsituationer, prisniveau, og om for meget skal drikkes på samme tid) og læg 3-5 konkrete forslag til vine, der IKKE er i kælderen, i shoppingList. Opsummér kort i intro. recommendations er da normalt tom.
+- Ellers er shoppingList en tom liste.
 
 Kælderliste (JSON):
 ${JSON.stringify(cellar)}`;
@@ -66,8 +76,12 @@ export async function askSommelier(
   } catch (e) {
     throw toAiError(e);
   }
-  const parsed = AnswerSchema.safeParse(extractJson(response as never));
+  const parsed = ParseSchema.safeParse(extractJson(response as never));
   if (!parsed.success) throw new AiError("ugyldigt-svar", parsed.error);
   const inStock = new Set(cellar.filter((c) => c.quantity > 0).map((c) => c.id));
-  return { intro: parsed.data.intro, recommendations: parsed.data.recommendations.filter((r) => inStock.has(r.wineId)) };
+  return {
+    intro: parsed.data.intro,
+    recommendations: parsed.data.recommendations.filter((r) => inStock.has(r.wineId)),
+    shoppingList: parsed.data.shoppingList.slice(0, MAX_SHOPPING),
+  };
 }

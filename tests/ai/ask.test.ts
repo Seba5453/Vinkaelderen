@@ -56,9 +56,31 @@ test("preserves recommendation order", async () => {
 
 test("empty cellar still asks and returns AI intro", async () => {
   const ans = await askSommelier(fakeClient(okResponse({ intro: "Din kælder er tom", recommendations: [] })), [], [], "Hvad nu?", 2026);
-  expect(ans).toEqual({ intro: "Din kælder er tom", recommendations: [] });
+  expect(ans).toEqual({ intro: "Din kælder er tom", recommendations: [], shoppingList: [] });
 });
 
 test("malformed answer -> ugyldigt-svar", async () => {
   await expect(askSommelier(fakeClient(okResponse({ nope: 1 })), [item()], [], "?", 2026)).rejects.toMatchObject({ kind: "ugyldigt-svar" });
+});
+
+const shop = (n: number) => Array.from({ length: n }, (_, i) => ({ suggestion: `Forslag ${i + 1}`, reason: "mangler" }));
+
+test("shoppingList is passed through and capped at 5", async () => {
+  const client = fakeClient(okResponse({ intro: "Du mangler hvidvin", recommendations: [], shoppingList: shop(7) }));
+  const a = await askSommelier(client, [item()], [], "Hvad mangler jeg?", 2026);
+  expect(a.shoppingList).toHaveLength(5);
+  expect(a.shoppingList[0]).toEqual({ suggestion: "Forslag 1", reason: "mangler" });
+});
+
+test("an answer without shoppingList gets an empty one", async () => {
+  const a = await askSommelier(fakeClient(answer(["a"])), [item()], [], "Hvad skal vi drikke?", 2026);
+  expect(a.shoppingList).toEqual([]);
+});
+
+test("the API schema requires shoppingList and the prompt explains it", async () => {
+  const client = fakeClient(answer([]));
+  await askSommelier(client, [item()], [], "x", 2026);
+  const schema = client.calls[0].output_config.format.schema;
+  expect(schema.required).toContain("shoppingList");
+  expect(client.calls[0].system).toMatch(/shoppingList/);
 });

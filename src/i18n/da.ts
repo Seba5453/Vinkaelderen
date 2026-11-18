@@ -66,6 +66,8 @@ export const da = {
     title: "Spørg", placeholder: "Fx: I aften kommer mine forældre til middag – hvilken rødvin skal vi starte med, og hvilken portvin senere?",
     send: "Spørg", thinking: "Tænker…", newChat: "Ny samtale", openThis: "Åbn denne", noKey: "Tilføj en API-nøgle under Indstillinger for at stille spørgsmål.",
     question: "Dit spørgsmål",
+    missing: "Hvad mangler jeg?", shoppingTitle: "Forslag til indkøb",
+    missingQuestion: "Hvad mangler jeg i min vinkælder? Foreslå 3-5 vine, jeg bør købe, og hvorfor.",
   },
 
   settings: {
